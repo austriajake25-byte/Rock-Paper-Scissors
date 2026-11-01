@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="game-container">
+
+        <h1>Rock Paper Scissors</h1>
+        <p id="status">Welcome! Create a game or join a friend.</p>
+
+        <section id="room-section">
+            <button id="create-room">Create Game</button>
+
+            <div class="join-section">
+                <input
+                    id="room-input"
+                    type="text"
+                    placeholder="Enter room code"
+                    maxlength="12"
+                >
+                <button id="join-room">Join Game</button>
+            </div>
+
+            <p id="room-code"></p>
+        </section>
+
+        <section id="game-section">
+            <h2>Make your move</h2>
+
+            <div class="choices">
+                <button class="choice" data-choice="rock">
+                    ✊ Rock
+                </button>
+
+                <button class="choice" data-choice="paper">
+                    ✋ Paper
+                </button>
+
+                <button class="choice" data-choice="scissors">
+                    ✌️ Scissors
+                </button>
+            </div>
+
+            <p id="result">Waiting for players...</p>
+
+            <div class="scoreboard">
+                <p>You: <span id="my-score">0</span></p>
+                <p>Friend: <span id="friend-score">0</span></p>
+                <p>Draws: <span id="draw-score">0</span></p>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script type="module" src="game.js"></script>
+
+</body>
+</html>
