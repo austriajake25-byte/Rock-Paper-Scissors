@@ -103,53 +103,42 @@ function generateRoomCode() {
 // 7. REPAIR ROOM DATA
 
 async function repairRoom(roomRef) {
-    const transaction = await runTransaction(roomRef, room => {
-        if (!room) return;
+    try {
+        const transaction = await runTransaction(
+            roomRef,
+            room => {
+                if (!room) return;
 
-        if (!room.choices) {
-            room.choices = {
-                player1: null,
-                player2: null
-            };
+                room.choices ??= {
+                    player1: null,
+                    player2: null
+                };
+
+                room.scores ??= {
+                    player1: 0,
+                    player2: 0,
+                    draws: 0
+                };
+
+                room.scores.player1 ??= 0;
+                room.scores.player2 ??= 0;
+                room.scores.draws ??= 0;
+
+                room.phase ??= "playing";
+                room.round ??= 1;
+                room.lastResult ??= null;
+
+                return room;
+            }
+        );
+
+        if (!transaction.committed) {
+            throw new Error("Transaction was not committed.");
         }
 
-        if (!room.scores) {
-            room.scores = {
-                player1: 0,
-                player2: 0,
-                draws: 0
-            };
-        }
-
-        if (room.scores.player1 == null) {
-            room.scores.player1 = 0;
-        }
-
-        if (room.scores.player2 == null) {
-            room.scores.player2 = 0;
-        }
-
-        if (room.scores.draws == null) {
-            room.scores.draws = 0;
-        }
-
-        if (!room.phase) {
-            room.phase = "playing";
-        }
-
-        if (!room.round) {
-            room.round = 1;
-        }
-
-        if (room.lastResult === undefined) {
-            room.lastResult = null;
-        }
-
-        return room;
-    });
-
-    if (!transaction.committed) {
-        throw new Error("Could not repair room data.");
+    } catch (error) {
+        console.error("REPAIR ERROR:", error);
+        throw error;
     }
 }
 
