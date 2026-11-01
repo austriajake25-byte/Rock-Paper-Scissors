@@ -289,43 +289,70 @@ function updateGame(room) {
 
     const friendChoice = room.choices[friendRole];
 
+    document.getElementById("my-score").textContent =
+        room.scores[currentRole];
+
+    document.getElementById("friend-score").textContent =
+        room.scores[friendRole];
+
+    document.getElementById("draw-score").textContent =
+        room.scores.draws;
+
+    statusText.textContent = "Round " + room.round;
+
     choiceButtons.forEach(button => {
         const selected = button.dataset.choice === myChoice;
 
         button.classList.toggle("selected", selected);
-        button.disabled = !!myChoice;
+        button.disabled =
+            room.phase !== "playing" || !!myChoice;
     });
 
-    if (!myChoice) {
+    if (room.phase === "result") {
+        const result = room.lastResult;
+
+        const myResult = result[currentRole];
+        const friendResult = result[friendRole];
+
+        let outcome;
+
+        if (result.winner === "draw") {
+            outcome = "It's a draw!";
+        } else if (result.winner === currentRole) {
+            outcome = "You win!";
+        } else {
+            outcome = "Your friend wins!";
+        }
+
+        resultText.textContent =
+            "You: " + myResult +
+            " | Friend: " + friendResult +
+            " — " + outcome;
+
+        return;
+    }
+
+    if (room.lastResult) {
+        const result = room.lastResult;
+
+        let outcome;
+
+        if (result.winner === "draw") {
+            outcome = "It's a draw!";
+        } else if (result.winner === currentRole) {
+            outcome = "You won the previous round!";
+        } else {
+            outcome = "Your friend won the previous round!";
+        }
+
+        resultText.textContent =
+            "Previous round: " + outcome;
+    } else if (!myChoice) {
         resultText.textContent = "Make your move!";
-        return;
-    }
-
-    if (!friendChoice) {
-        resultText.textContent = "Waiting for your friend...";
-        return;
-    }
-
-    let result;
-
-    if (myChoice === friendChoice) {
-        result = "It's a draw!";
-    } else if (
-        (myChoice === "rock" && friendChoice === "scissors") ||
-        (myChoice === "paper" && friendChoice === "rock") ||
-        (myChoice === "scissors" && friendChoice === "paper")
-    ) {
-        result = "You win!";
     } else {
-        result = "Your friend wins!";
+        resultText.textContent = "Waiting for your friend...";
     }
-
-    resultText.textContent =
-        "You: " + myChoice +
-        " | Friend: " + friendChoice +
-        " — " + result;
 }
-
 
 // 12. SUBMIT A CHOICE
 
@@ -338,7 +365,15 @@ async function submitChoice(choice) {
         await runTransaction(roomRef, room => {
             if (!room) return;
 
-            if (room.phase !== "playing") return;
+            if (room.phase === "result") {
+                room.round++;
+                room.phase = "playing";
+
+                room.choices = {
+                    player1: null,
+                    player2: null
+                };
+            }
 
             if (room.choices[currentRole] !== null) return;
 
