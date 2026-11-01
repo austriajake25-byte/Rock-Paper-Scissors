@@ -100,47 +100,6 @@ function generateRoomCode() {
 }
 
 
-// 7. REPAIR ROOM DATA
-
-async function repairRoom(roomRef) {
-    try {
-        const transaction = await runTransaction(
-            roomRef,
-            room => {
-                if (!room) return;
-
-                room.choices ??= {
-                    player1: null,
-                    player2: null
-                };
-
-                room.scores ??= {
-                    player1: 0,
-                    player2: 0,
-                    draws: 0
-                };
-
-                room.scores.player1 ??= 0;
-                room.scores.player2 ??= 0;
-                room.scores.draws ??= 0;
-
-                room.phase ??= "playing";
-                room.round ??= 1;
-                room.lastResult ??= null;
-
-                return room;
-            }
-        );
-
-        if (!transaction.committed) {
-            throw new Error("Transaction was not committed.");
-        }
-
-    } catch (error) {
-        console.error("REPAIR ERROR:", error);
-        throw error;
-    }
-}
 
 
 // 8. CREATE GAME
@@ -223,11 +182,16 @@ async function joinGame() {
             return;
         }
 
+        if (!room.choices || !room.scores) {
+            statusText.textContent =
+                "This is an old or invalid room. Create a new one.";
+            joinButton.disabled = false;
+            return;
+        }
+
         if (room.player1 === currentUser.uid) {
             currentRoom = code;
             currentRole = "player1";
-
-            await repairRoom(roomRef);
             enterGame();
             return;
         }
@@ -261,8 +225,6 @@ async function joinGame() {
         currentRoom = code;
         currentRole = "player2";
 
-        await repairRoom(roomRef);
-
         enterGame();
 
     } catch (error) {
@@ -274,7 +236,6 @@ async function joinGame() {
         joinButton.disabled = false;
     }
 }
-
 
 // 10. ENTER GAME
 
