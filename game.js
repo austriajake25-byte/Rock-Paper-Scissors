@@ -117,7 +117,13 @@ async function createGame() {
             choices: {
                 player1: null,
                 player2: null
-            }
+            },
+            scores: {
+                player1: 0,
+                player2: 0,
+                draws: 0
+            },
+            lastResult: null
         });
 
         currentRoom = code;
@@ -279,6 +285,15 @@ function updateGame(room) {
 
     const friendChoice = room.choices[friendRole];
 
+    const myScore = room.scores?.[currentRole] ?? 0;
+    const friendScore = room.scores?.[friendRole] ?? 0;
+    const draws = room.scores?.draws ?? 0;
+
+    const scoreText =
+        "Score — You: " + myScore +
+        " | Friend: " + friendScore +
+        " | Draws: " + draws;
+
     choiceButtons.forEach(button => {
         const selected = button.dataset.choice === myChoice;
 
@@ -286,13 +301,27 @@ function updateGame(room) {
         button.disabled = !!myChoice;
     });
 
+    if (!myChoice && !friendChoice) {
+        resultText.textContent =
+            "Round " + room.round + "\n" +
+            "Make your move!\n" +
+            scoreText;
+        return;
+    }
+
     if (!myChoice) {
-        resultText.textContent = "Make your move!";
+        resultText.textContent =
+            "Round " + room.round + "\n" +
+            "Your friend has made their move. Your turn!\n" +
+            scoreText;
         return;
     }
 
     if (!friendChoice) {
-        resultText.textContent = "Waiting for your friend...";
+        resultText.textContent =
+            "Round " + room.round + "\n" +
+            "Waiting for your friend...\n" +
+            scoreText;
         return;
     }
 
@@ -311,9 +340,12 @@ function updateGame(room) {
     }
 
     resultText.textContent =
+        "Round " + room.round + "\n" +
         "You: " + myChoice +
         " | Friend: " + friendChoice +
-        " — " + result;
+        " — " + result + "\n" +
+        scoreText +
+        "\nChoose again to start the next round!";
 }
 
 
@@ -323,12 +355,85 @@ async function submitChoice(choice) {
     if (!currentRoom || !currentRole) return;
 
     try {
-        const choiceRef = ref(
-            db,
-            "rooms/" + currentRoom + "/choices/" + currentRole
+        const roomRef = ref(db, "rooms/" + currentRoom);
+
+        const transaction = await runTransaction(
+            roomRef,
+            room => {
+                if (!room || !room.player2) {
+                    return;
+                }
+
+                room.round = room.round || 1;
+
+                room.choices = room.choices || {
+                    player1: null,
+                    player2: null
+                };
+
+                room.scores = room.scores || {
+                    player1: 0,
+                    player2: 0,
+                    draws: 0
+                };
+
+                // Start the next round if the previous
+                // round has already been completed.
+
+                if (
+                    room.choices.player1 !== null &&
+                    room.choices.player2 !== null
+                ) {
+                    room.round++;
+
+                    room.choices = {
+                        player1: null,
+                        player2: null
+                    };
+                }
+
+                // Do not allow a player to submit twice.
+
+                if (room.choices[currentRole] !== null) {
+                    return;
+                }
+
+                room.choices[currentRole] = choice;
+
+                const player1Choice = room.choices.player1;
+                const player2Choice = room.choices.player2;
+
+                // Calculate the result once both players
+                // have submitted their choices.
+
+                if (player1Choice && player2Choice) {
+
+                    if (player1Choice === player2Choice) {
+                        room.scores.draws++;
+                        room.lastResult = "draw";
+
+                    } else if (
+                        (player1Choice === "rock" && player2Choice === "scissors") ||
+                        (player1Choice === "paper" && player2Choice === "rock") ||
+                        (player1Choice === "scissors" && player2Choice === "paper")
+                    ) {
+                        room.scores.player1++;
+                        room.lastResult = "player1";
+
+                    } else {
+                        room.scores.player2++;
+                        room.lastResult = "player2";
+                    }
+                }
+
+                return room;
+            }
         );
 
-        await set(choiceRef, choice);
+        if (!transaction.committed) {
+            resultText.textContent =
+                "Your move was not submitted. Please try again.";
+        }
 
     } catch (error) {
         console.error(error);
