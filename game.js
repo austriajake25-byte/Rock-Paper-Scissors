@@ -67,21 +67,18 @@ async function initializePlayer() {
 
         currentUser = credentials.user;
 
-        const roomFromUrl =
-            new URLSearchParams(window.location.search).get("room");
+        const roomFromUrl = new URLSearchParams(window.location.search).get("room");
 
         if (roomFromUrl) {
             roomInput.value = roomFromUrl;
             await joinGame();
         } else {
-            statusText.textContent =
-                "Connected! Create or join a game.";
+            statusText.textContent = "Connected! Create or join a game.";
         }
 
     } catch (error) {
         console.error(error);
-        statusText.textContent =
-            "Connection failed. Please reload.";
+        statusText.textContent = "Connection failed. Please reload.";
     }
 }
 
@@ -100,9 +97,8 @@ function generateRoomCode() {
 }
 
 
+// 7. CREATE GAME
 
-
-// 8. CREATE GAME
 
 async function createGame() {
     if (!currentUser) return;
@@ -117,21 +113,11 @@ async function createGame() {
             player1: currentUser.uid,
             player2: null,
             status: "waiting",
-            phase: "playing",
             round: 1,
-
-            scores: {
-                player1: 0,
-                player2: 0,
-                draws: 0
-            },
-
             choices: {
                 player1: null,
                 player2: null
-            },
-
-            lastResult: null
+            }
         });
 
         currentRoom = code;
@@ -139,7 +125,6 @@ async function createGame() {
 
         const url = new URL(window.location.href);
         url.searchParams.set("room", code);
-
         inviteLink = url.toString();
 
         copyLinkButton.style.display = "block";
@@ -148,16 +133,15 @@ async function createGame() {
 
     } catch (error) {
         console.error(error);
-
-        statusText.textContent =
-            "Could not create game.";
-
+        statusText.textContent = "Could not create game.";
         createButton.disabled = false;
     }
 }
 
 
-// 9. JOIN GAME
+
+// 8. JOIN GAME
+
 
 async function joinGame() {
     if (!currentUser) return;
@@ -182,13 +166,6 @@ async function joinGame() {
             return;
         }
 
-        if (!room.choices || !room.scores) {
-            statusText.textContent =
-                "This is an old or invalid room. Create a new one.";
-            joinButton.disabled = false;
-            return;
-        }
-
         if (room.player1 === currentUser.uid) {
             currentRoom = code;
             currentRole = "player1";
@@ -208,7 +185,7 @@ async function joinGame() {
                     return currentPlayer;
                 }
 
-                if (currentPlayer != null) {
+                if (currentPlayer !== null) {
                     return;
                 }
 
@@ -217,7 +194,9 @@ async function joinGame() {
         );
 
         if (!transaction.committed) {
-            statusText.textContent = "Room is already full.";
+            statusText.textContent =
+                "Room is already full.";
+
             joinButton.disabled = false;
             return;
         }
@@ -229,15 +208,14 @@ async function joinGame() {
 
     } catch (error) {
         console.error(error);
-
-        statusText.textContent =
-            "Could not join game: " + error.message;
-
+        statusText.textContent = "Could not join game.";
         joinButton.disabled = false;
     }
 }
 
-// 10. ENTER GAME
+
+
+// 9. ENTER GAME
 
 function enterGame() {
     gameSection.style.display = "block";
@@ -259,7 +237,7 @@ function enterGame() {
 }
 
 
-// 11. LISTEN FOR DATABASE UPDATES
+// 10. LISTEN FOR DATABASE UPDATES
 
 function listenToRoom() {
     const roomRef = ref(db, "rooms/" + currentRoom);
@@ -272,8 +250,7 @@ function listenToRoom() {
         const room = snapshot.val();
 
         if (!room) {
-            statusText.textContent =
-                "Room no longer exists.";
+            statusText.textContent = "Room no longer exists.";
             return;
         }
 
@@ -283,29 +260,16 @@ function listenToRoom() {
             return;
         }
 
-        try {
-            updateGame(room);
+        statusText.textContent = "Both players connected!";
 
-        } catch (error) {
-            console.error(error);
-
-            statusText.textContent =
-                "Game error: " + error.message;
-
-            resultText.textContent =
-                "Please reload the game.";
-        }
+        updateGame(room);
     });
 }
 
 
-// 12. PROCESS GAME STATE
+// 11. PROCESS GAME STATE
 
 function updateGame(room) {
-    if (!room.choices || !room.scores) {
-        throw new Error("Room data is incomplete.");
-    }
-
     const myChoice = room.choices[currentRole];
 
     const friendRole =
@@ -313,182 +277,69 @@ function updateGame(room) {
             ? "player2"
             : "player1";
 
-    document.getElementById("my-score").textContent =
-        room.scores[currentRole];
-
-    document.getElementById("friend-score").textContent =
-        room.scores[friendRole];
-
-    document.getElementById("draw-score").textContent =
-        room.scores.draws;
-
-    statusText.textContent =
-        "Round " + room.round;
+    const friendChoice = room.choices[friendRole];
 
     choiceButtons.forEach(button => {
-        const selected =
-            button.dataset.choice === myChoice;
+        const selected = button.dataset.choice === myChoice;
 
         button.classList.toggle("selected", selected);
-
-        button.disabled =
-            room.phase !== "playing" || !!myChoice;
+        button.disabled = !!myChoice;
     });
 
-    if (room.phase === "result") {
-        const result = room.lastResult;
-
-        if (!result) {
-            throw new Error("Round result is missing.");
-        }
-
-        const myResult = result[currentRole];
-        const friendResult = result[friendRole];
-
-        let outcome;
-
-        if (result.winner === "draw") {
-            outcome = "It's a draw!";
-        } else if (result.winner === currentRole) {
-            outcome = "You win!";
-        } else {
-            outcome = "Your friend wins!";
-        }
-
-        resultText.textContent =
-            "You: " + myResult +
-            " | Friend: " + friendResult +
-            " — " + outcome;
-
+    if (!myChoice) {
+        resultText.textContent = "Make your move!";
         return;
     }
 
-    if (room.lastResult) {
-        const result = room.lastResult;
-
-        let outcome;
-
-        if (result.winner === "draw") {
-            outcome = "It was a draw!";
-        } else if (result.winner === currentRole) {
-            outcome = "You won the previous round!";
-        } else {
-            outcome = "Your friend won the previous round!";
-        }
-
-        resultText.textContent =
-            "Previous round: " + outcome;
-
-    } else if (!myChoice) {
-        resultText.textContent = "Make your move!";
-
-    } else {
-        resultText.textContent =
-            "Waiting for your friend...";
+    if (!friendChoice) {
+        resultText.textContent = "Waiting for your friend...";
+        return;
     }
+
+    let result;
+
+    if (myChoice === friendChoice) {
+        result = "It's a draw!";
+    } else if (
+        (myChoice === "rock" && friendChoice === "scissors") ||
+        (myChoice === "paper" && friendChoice === "rock") ||
+        (myChoice === "scissors" && friendChoice === "paper")
+    ) {
+        result = "You win!";
+    } else {
+        result = "Your friend wins!";
+    }
+
+    resultText.textContent =
+        "You: " + myChoice +
+        " | Friend: " + friendChoice +
+        " — " + result;
 }
 
 
-// 13. SUBMIT A CHOICE
+// 12. SUBMIT A CHOICE
 
 async function submitChoice(choice) {
     if (!currentRoom || !currentRole) return;
 
     try {
-        const roomRef = ref(db, "rooms/" + currentRoom);
-
-        const transaction = await runTransaction(
-            roomRef,
-            room => {
-                if (!room) return;
-
-                if (!room.choices || !room.scores) {
-                    return;
-                }
-
-                if (room.phase === "result") {
-                    room.round++;
-
-                    room.phase = "playing";
-
-                    room.choices = {
-                        player1: null,
-                        player2: null
-                    };
-                }
-
-                if (room.phase !== "playing") {
-                    return;
-                }
-
-                if (room.choices[currentRole] != null) {
-                    return;
-                }
-
-                room.choices[currentRole] = choice;
-
-                const player1Choice =
-                    room.choices.player1;
-
-                const player2Choice =
-                    room.choices.player2;
-
-                if (player1Choice && player2Choice) {
-                    let winner;
-
-                    if (player1Choice === player2Choice) {
-                        winner = "draw";
-                        room.scores.draws++;
-
-                    } else if (
-                        (player1Choice === "rock" &&
-                            player2Choice === "scissors") ||
-
-                        (player1Choice === "paper" &&
-                            player2Choice === "rock") ||
-
-                        (player1Choice === "scissors" &&
-                            player2Choice === "paper")
-                    ) {
-                        winner = "player1";
-                        room.scores.player1++;
-
-                    } else {
-                        winner = "player2";
-                        room.scores.player2++;
-                    }
-
-                    room.lastResult = {
-                        player1: player1Choice,
-                        player2: player2Choice,
-                        winner: winner
-                    };
-
-                    room.phase = "result";
-                }
-
-                return room;
-            }
+        const choiceRef = ref(
+            db,
+            "rooms/" + currentRoom + "/choices/" + currentRole
         );
 
-        if (!transaction.committed) {
-            resultText.textContent =
-                "Your move could not be submitted. Please try again.";
-        }
+        await set(choiceRef, choice);
 
     } catch (error) {
         console.error(error);
-
-        resultText.textContent =
-            "Could not submit your move: " + error.message;
+        resultText.textContent = "Could not submit your move.";
     }
 }
 
 
-// 14. CONNECT BUTTONS
+// 13. CONNECT BUTTONS
 
 createButton.addEventListener("click", createGame);
-
 joinButton.addEventListener("click", joinGame);
 
 choiceButtons.forEach(button => {
@@ -500,19 +351,13 @@ choiceButtons.forEach(button => {
 copyLinkButton.addEventListener("click", async () => {
     try {
         await navigator.clipboard.writeText(inviteLink);
-
-        statusText.textContent =
-            "Invite link copied!";
-
+        statusText.textContent = "Invite link copied!";
     } catch (error) {
         console.error(error);
-
-        statusText.textContent =
-            "Could not copy link.";
+        statusText.textContent = "Could not copy link.";
     }
 });
 
-
-// 15. START
+// 14. START
 
 initializePlayer();
