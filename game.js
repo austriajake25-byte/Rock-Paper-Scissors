@@ -19,13 +19,13 @@ import {
 // 1. FIREBASE CONFIGURATION
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA8J0bUNHFrEG3EuK2e_ndgKHhLoAHVyhA",
+  authDomain: "rock-paper-scissors-16cab.firebaseapp.com",
+  databaseURL: "https://rock-paper-scissors-16cab-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rock-paper-scissors-16cab",
+  storageBucket: "rock-paper-scissors-16cab.firebasestorage.app",
+  messagingSenderId: "414842285781",
+  appId: "1:414842285781:web:97c1b502167b15feb77c5c"
 };
 
 
