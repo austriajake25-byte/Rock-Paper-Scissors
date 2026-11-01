@@ -258,12 +258,14 @@ async function joinGame() {
         );
 
         if (!transaction.committed) {
-            statusText.textContent =
-                "Room is already full.";
+            statusText.textContent = "Room is already full.";
 
             joinButton.disabled = false;
             return;
         }
+
+        // Remove the room from the public list.
+        await set(ref(db, "publicRooms/" + code), null);
 
         currentRoom = code;
         currentRole = "player2";
