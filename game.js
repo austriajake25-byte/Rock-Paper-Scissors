@@ -275,6 +275,7 @@ function listenToRoom() {
 
 // 11. PROCESS GAME STATE
 
+
 function updateGame(room) {
     const myChoice = room.choices[currentRole];
 
@@ -289,11 +290,12 @@ function updateGame(room) {
     const friendScore = room.scores?.[friendRole] ?? 0;
     const draws = room.scores?.draws ?? 0;
 
-    const scoreText =
-        "Score — You: " + myScore +
-        " | Friend: " + friendScore +
-        " | Draws: " + draws;
+    // Update scoreboard
+    document.getElementById("my-score").textContent = myScore;
+    document.getElementById("friend-score").textContent = friendScore;
+    document.getElementById("draw-score").textContent = draws;
 
+    // Update choice buttons
     choiceButtons.forEach(button => {
         const selected = button.dataset.choice === myChoice;
 
@@ -301,52 +303,47 @@ function updateGame(room) {
         button.disabled = !!myChoice;
     });
 
+    // Display current round
     if (!myChoice && !friendChoice) {
         resultText.textContent =
-            "Round " + room.round + "\n" +
-            "Make your move!\n" +
-            scoreText;
+            "Round " + room.round + "\nMake your move!";
         return;
     }
 
     if (!myChoice) {
         resultText.textContent =
-            "Round " + room.round + "\n" +
-            "Your friend has made their move. Your turn!\n" +
-            scoreText;
+            "Round " + room.round +
+            "\nYour friend has chosen. Your turn!";
         return;
     }
 
     if (!friendChoice) {
         resultText.textContent =
-            "Round " + room.round + "\n" +
-            "Waiting for your friend...\n" +
-            scoreText;
+            "Round " + room.round +
+            "\nWaiting for your friend...";
         return;
     }
 
+    // Display the actual winner
     let result;
 
-    if (myChoice === friendChoice) {
+    if (room.lastResult === "draw") {
         result = "It's a draw!";
-    } else if (
-        (myChoice === "rock" && friendChoice === "scissors") ||
-        (myChoice === "paper" && friendChoice === "rock") ||
-        (myChoice === "scissors" && friendChoice === "paper")
-    ) {
+
+    } else if (room.lastResult === currentRole) {
         result = "You win!";
+
     } else {
-        result = "Your friend wins!";
+        result = "You lose!";
     }
 
     resultText.textContent =
         "Round " + room.round + "\n" +
-        "You: " + myChoice +
-        " | Friend: " + friendChoice +
-        " — " + result + "\n" +
-        scoreText +
-        "\nChoose again to start the next round!";
+        "You chose: " + myChoice + "\n" +
+        "Friend chose: " + friendChoice + "\n" +
+        result;
 }
+
 
 
 // 12. SUBMIT A CHOICE
