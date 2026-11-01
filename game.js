@@ -113,11 +113,21 @@ async function createGame() {
             player1: currentUser.uid,
             player2: null,
             status: "waiting",
+            phase: "playing",
             round: 1,
+
+            scores: {
+                player1: 0,
+                player2: 0,
+                draws: 0
+            },
+
             choices: {
                 player1: null,
                 player2: null
-            }
+            },
+
+            lastResult: null
         });
 
         currentRoom = code;
