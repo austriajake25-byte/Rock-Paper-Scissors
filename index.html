@@ -16,6 +16,10 @@
 
         <section id="room-section">
             <button id="create-room">Create Game</button>
+            <label>
+                <input type="checkbox" id="make-public">
+                Make this room public
+            </label>
 
             <div class="join-section">
                 <input
@@ -32,6 +36,14 @@
             <button id="copy-link" style="display: none;">
                 Copy Invite Link
             </button>
+        </section>
+
+        <section id="public-rooms-section">
+            <h2>Public Games</h2>
+            <p>Join an available game!</p>
+            <div id="public-rooms-list">
+                Loading public games...
+            </div>
         </section>
 
         <section id="game-section">
