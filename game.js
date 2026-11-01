@@ -43,6 +43,7 @@ let currentRoom = null;
 let currentRole = null;
 let roomListener = null;
 let inviteLink = "";
+let publicRoomsListener = null;
 
 
 // 4. HTML ELEMENTS
@@ -59,6 +60,46 @@ const choiceButtons = document.querySelectorAll(".choice");
 const copyLinkButton = document.getElementById("copy-link");
 
 
+
+// Public Rooms
+
+function listenToPublicRooms() {
+    const publicRoomsRef = ref(db, "publicRooms");
+
+    publicRoomsListener = onValue(publicRoomsRef, snapshot => {
+        const rooms = snapshot.val();
+        const list = document.getElementById("public-rooms-list");
+
+        list.innerHTML = "";
+
+        if (!rooms || Object.keys(rooms).length === 0) {
+            list.textContent = "No public games available.";
+            return;
+        }
+
+        Object.entries(rooms).forEach(([code, room]) => {
+            const container = document.createElement("div");
+            const title = document.createElement("p");
+            const joinButton = document.createElement("button");
+
+            title.textContent = "Public Game: " + code;
+            joinButton.textContent = "Join Game";
+
+            joinButton.addEventListener("click", () => {
+                roomInput.value = code;
+                joinGame();
+            });
+
+            container.appendChild(title);
+            container.appendChild(joinButton);
+            list.appendChild(container);
+        });
+    });
+}
+
+
+
+
 // 5. AUTHENTICATE PLAYER
 
 async function initializePlayer() {
@@ -66,6 +107,7 @@ async function initializePlayer() {
         const credentials = await signInAnonymously(auth);
 
         currentUser = credentials.user;
+        listenToPublicRooms();
 
         const roomFromUrl = new URLSearchParams(window.location.search).get("room");
 
@@ -125,7 +167,23 @@ async function createGame() {
             },
             lastResult: null
         });
+        
+        const makePublic = document.getElementById("make-public").checked;
 
+        if (makePublic) {
+            try {
+                await set(
+                    ref(db, "publicRooms/" + code), 
+                {
+                    player1: currentUser.uid,
+                    createdAt: Date.now()
+                });
+            } catch (error) {
+                console.error("Could not publish room:", error);
+                statusText.textContent = "Game created, but could not publish it.";
+            }
+        }
+        
         currentRoom = code;
         currentRole = "player1";
 
