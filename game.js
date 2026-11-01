@@ -374,13 +374,13 @@ async function submitChoice(choice) {
                 };
 
                 // Start a new round if both previous choices exist.
-                if (
-                room.choices.player1 !== null && room.choices.player2 !== null
-                ){
+                if (room.choices.player1 && room.choices.player2) {
                     room.round++;
 
-                    room.choices.player1 = null;
-                    room.choices.player2 = null;
+                    room.choices = {
+                        player1: null,
+                        player2: null
+                    };
                 }
 
                 if (room.choices[currentRole]) return;
