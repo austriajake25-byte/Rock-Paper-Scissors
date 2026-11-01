@@ -276,6 +276,7 @@ function listenToRoom() {
 // 11. PROCESS GAME STATE
 
 
+
 function updateGame(room) {
     const myChoice = room.choices[currentRole];
 
@@ -290,20 +291,20 @@ function updateGame(room) {
     const friendScore = room.scores?.[friendRole] ?? 0;
     const draws = room.scores?.draws ?? 0;
 
-    // Update scoreboard
     document.getElementById("my-score").textContent = myScore;
     document.getElementById("friend-score").textContent = friendScore;
     document.getElementById("draw-score").textContent = draws;
 
-    // Update choice buttons
+    const roundComplete = !!myChoice && !!friendChoice;
+
     choiceButtons.forEach(button => {
-        const selected = button.dataset.choice === myChoice;
+        const selected = !roundComplete &&
+            button.dataset.choice === myChoice;
 
         button.classList.toggle("selected", selected);
-        button.disabled = !!myChoice;
+        button.disabled = !!myChoice && !roundComplete;
     });
 
-    // Display current round
     if (!myChoice && !friendChoice) {
         resultText.textContent =
             "Round " + room.round + "\nMake your move!";
@@ -324,15 +325,12 @@ function updateGame(room) {
         return;
     }
 
-    // Display the actual winner
     let result;
 
     if (room.lastResult === "draw") {
         result = "It's a draw!";
-
     } else if (room.lastResult === currentRole) {
         result = "You win!";
-
     } else {
         result = "You lose!";
     }
@@ -341,8 +339,10 @@ function updateGame(room) {
         "Round " + room.round + "\n" +
         "You chose: " + myChoice + "\n" +
         "Friend chose: " + friendChoice + "\n" +
-        result;
+        result + "\n" +
+        "Choose again to start the next round!";
 }
+
 
 
 
