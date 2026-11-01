@@ -90,21 +90,15 @@ function generateRoomCode() {
 
 // 7. CREATE GAME
 
+
 async function createGame() {
     if (!currentUser) return;
 
     try {
         createButton.disabled = true;
 
-        let code;
-        let roomRef;
-        let existingRoom;
-
-        do {
-            code = generateRoomCode();
-            roomRef = ref(db, "rooms/" + code);
-            existingRoom = await get(roomRef);
-        } while (existingRoom.exists());
+        const code = generateRoomCode();
+        const roomRef = ref(db, "rooms/" + code);
 
         await set(roomRef, {
             player1: currentUser.uid,
@@ -130,7 +124,9 @@ async function createGame() {
 }
 
 
+
 // 8. JOIN GAME
+
 
 async function joinGame() {
     if (!currentUser) return;
@@ -145,28 +141,23 @@ async function joinGame() {
     try {
         joinButton.disabled = true;
 
-        const roomRef = ref(db, "rooms/" + code);
+        const player2Ref = ref(
+            db,
+            "rooms/" + code + "/player2"
+        );
 
         const transaction = await runTransaction(
-            roomRef,
-            room => {
-                if (!room) return;
-
-                if (room.player1 === currentUser.uid) {
-                    return room;
+            player2Ref,
+            currentPlayer => {
+                if (currentPlayer === currentUser.uid) {
+                    return currentPlayer;
                 }
 
-                if (room.player2 === currentUser.uid) {
-                    return room;
+                if (currentPlayer !== null) {
+                    return;
                 }
 
-                if (!room.player2 && room.status === "waiting") {
-                    room.player2 = currentUser.uid;
-                    room.status = "playing";
-                    return room;
-                }
-
-                return;
+                return currentUser.uid;
             }
         );
 
@@ -178,9 +169,17 @@ async function joinGame() {
             return;
         }
 
-        currentRoom = code;
+        const roomRef = ref(db, "rooms/" + code);
+        const snapshot = await get(roomRef);
+        const room = snapshot.val();
 
-        const room = transaction.snapshot.val();
+        if (!room) {
+            statusText.textContent = "Room not found.";
+            joinButton.disabled = false;
+            return;
+        }
+
+        currentRoom = code;
 
         currentRole =
             room.player1 === currentUser.uid
@@ -195,6 +194,7 @@ async function joinGame() {
         joinButton.disabled = false;
     }
 }
+
 
 
 // 9. ENTER GAME
