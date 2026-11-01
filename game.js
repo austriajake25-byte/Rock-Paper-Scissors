@@ -270,9 +270,15 @@ function listenToRoom() {
             return;
         }
 
-        statusText.textContent = "Both players connected!";
+        try {
+            updateGame(room);
+        } catch (error) {
+            console.error(error);
 
-        updateGame(room);
+            statusText.textContent = "Game error: " + error.message;
+
+            resultText.textContent = "Check game.js for an error.";
+        }
     });
 }
 
