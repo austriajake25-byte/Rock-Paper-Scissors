@@ -42,6 +42,7 @@ let currentUser = null;
 let currentRoom = null;
 let currentRole = null;
 let roomListener = null;
+let inviteLink = "";
 
 
 // 4. HTML ELEMENTS
@@ -55,6 +56,7 @@ const gameSection = document.getElementById("game-section");
 const resultText = document.getElementById("result");
 
 const choiceButtons = document.querySelectorAll(".choice");
+const copyLinkButton = document.getElementById("copy-link");
 
 
 // 5. AUTHENTICATE PLAYER
@@ -65,7 +67,14 @@ async function initializePlayer() {
 
         currentUser = credentials.user;
 
-        statusText.textContent = "Connected! Create or join a game.";
+        const roomFromUrl = new URLSearchParams(window.location.search).get("room");
+
+        if (roomFromUrl) {
+            roomInput.value = roomFromUrl;
+            await joinGame();
+        } else {
+            statusText.textContent = "Connected! Create or join a game.";
+        }
 
     } catch (error) {
         console.error(error);
@@ -114,6 +123,12 @@ async function createGame() {
         currentRoom = code;
         currentRole = "player1";
 
+        const url = new URL(window.location.href);
+        url.searchParams.set("room", code);
+        inviteLink = url.toString();
+
+        copyLinkButton.style.display = "block";
+
         enterGame();
 
     } catch (error) {
@@ -141,6 +156,23 @@ async function joinGame() {
     try {
         joinButton.disabled = true;
 
+        const roomRef = ref(db, "rooms/" + code);
+        const roomSnapshot = await get(roomRef);
+        const room = roomSnapshot.val();
+
+        if (!room) {
+            statusText.textContent = "Room not found.";
+            joinButton.disabled = false;
+            return;
+        }
+
+        if (room.player1 === currentUser.uid) {
+            currentRoom = code;
+            currentRole = "player1";
+            enterGame();
+            return;
+        }
+
         const player2Ref = ref(
             db,
             "rooms/" + code + "/player2"
@@ -163,28 +195,14 @@ async function joinGame() {
 
         if (!transaction.committed) {
             statusText.textContent =
-                "Room does not exist or is already full.";
+                "Room is already full.";
 
-            joinButton.disabled = false;
-            return;
-        }
-
-        const roomRef = ref(db, "rooms/" + code);
-        const snapshot = await get(roomRef);
-        const room = snapshot.val();
-
-        if (!room) {
-            statusText.textContent = "Room not found.";
             joinButton.disabled = false;
             return;
         }
 
         currentRoom = code;
-
-        currentRole =
-            room.player1 === currentUser.uid
-                ? "player1"
-                : "player2";
+        currentRole = "player2";
 
         enterGame();
 
@@ -330,6 +348,15 @@ choiceButtons.forEach(button => {
     });
 });
 
+copyLinkButton.addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText(inviteLink);
+        statusText.textContent = "Invite link copied!";
+    } catch (error) {
+        console.error(error);
+        statusText.textContent = "Could not copy link.";
+    }
+});
 
 // 14. START
 
