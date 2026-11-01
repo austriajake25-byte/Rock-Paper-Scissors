@@ -333,12 +333,49 @@ async function submitChoice(choice) {
     if (!currentRoom || !currentRole) return;
 
     try {
-        const choiceRef = ref(
-            db,
-            "rooms/" + currentRoom + "/choices/" + currentRole
-        );
+        const roomRef = ref(db, "rooms/" + currentRoom);
 
-        await set(choiceRef, choice);
+        await runTransaction(roomRef, room => {
+            if (!room) return;
+
+            if (room.phase !== "playing") return;
+
+            if (room.choices[currentRole] !== null) return;
+
+            room.choices[currentRole] = choice;
+
+            const player1Choice = room.choices.player1;
+            const player2Choice = room.choices.player2;
+
+            if (player1Choice && player2Choice) {
+                let winner;
+
+                if (player1Choice === player2Choice) {
+                    winner = "draw";
+                    room.scores.draws++;
+                } else if (
+                    (player1Choice === "rock" && player2Choice === "scissors") ||
+                    (player1Choice === "paper" && player2Choice === "rock") ||
+                    (player1Choice === "scissors" && player2Choice === "paper")
+                ) {
+                    winner = "player1";
+                    room.scores.player1++;
+                } else {
+                    winner = "player2";
+                    room.scores.player2++;
+                }
+
+                room.lastResult = {
+                    player1: player1Choice,
+                    player2: player2Choice,
+                    winner: winner
+                };
+
+                room.phase = "result";
+            }
+
+            return room;
+        });
 
     } catch (error) {
         console.error(error);
