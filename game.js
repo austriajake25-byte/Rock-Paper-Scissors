@@ -348,6 +348,7 @@ function updateGame(room) {
 
 // 12. SUBMIT A CHOICE
 
+
 async function submitChoice(choice) {
     if (!currentRoom || !currentRole) return;
 
@@ -357,9 +358,7 @@ async function submitChoice(choice) {
         const transaction = await runTransaction(
             roomRef,
             room => {
-                if (!room || !room.player2) {
-                    return;
-                }
+                if (!room || !room.player2) return;
 
                 room.round = room.round || 1;
 
@@ -374,13 +373,8 @@ async function submitChoice(choice) {
                     draws: 0
                 };
 
-                // Start the next round if the previous
-                // round has already been completed.
-
-                if (
-                    room.choices.player1 !== null &&
-                    room.choices.player2 !== null
-                ) {
+                // Start a new round if both previous choices exist.
+                if (room.choices.player1 && room.choices.player2) {
                     room.round++;
 
                     room.choices = {
@@ -389,54 +383,53 @@ async function submitChoice(choice) {
                     };
                 }
 
-                // Do not allow a player to submit twice.
-
-                if (room.choices[currentRole] !== null) {
-                    return;
-                }
+                if (room.choices[currentRole]) return;
 
                 room.choices[currentRole] = choice;
 
-                const player1Choice = room.choices.player1;
-                const player2Choice = room.choices.player2;
+                const p1 = room.choices.player1;
+                const p2 = room.choices.player2;
 
-                // Calculate the result once both players
-                // have submitted their choices.
+                console.log("Transaction choices:", p1, p2);
 
-                if (player1Choice && player2Choice) {
-
-                    if (player1Choice === player2Choice) {
+                if (p1 && p2) {
+                    if (p1 === p2) {
                         room.scores.draws++;
                         room.lastResult = "draw";
-
                     } else if (
-                        (player1Choice === "rock" && player2Choice === "scissors") ||
-                        (player1Choice === "paper" && player2Choice === "rock") ||
-                        (player1Choice === "scissors" && player2Choice === "paper")
+                        (p1 === "rock" && p2 === "scissors") ||
+                        (p1 === "paper" && p2 === "rock") ||
+                        (p1 === "scissors" && p2 === "paper")
                     ) {
                         room.scores.player1++;
                         room.lastResult = "player1";
-
                     } else {
                         room.scores.player2++;
                         room.lastResult = "player2";
                     }
+
+                    console.log("Calculated result:", room.lastResult);
+                    console.log("Calculated scores:", room.scores);
                 }
 
                 return room;
             }
         );
 
+        console.log("Transaction committed:", transaction.committed);
+        console.log("Saved room:", transaction.snapshot.val());
+
         if (!transaction.committed) {
             resultText.textContent =
-                "Your move was not submitted. Please try again.";
+                "Transaction failed. Check the game connection.";
         }
 
     } catch (error) {
-        console.error(error);
-        resultText.textContent = "Could not submit your move.";
+        console.error("Submit error:", error);
+        resultText.textContent = "Could not submit your move: " + error.message;
     }
 }
+
 
 
 // 13. CONNECT BUTTONS
